@@ -1,30 +1,50 @@
 # FlymeEars
 
 把**第三方蓝牙耳机**接进**魅族耳机 App**（`com.meizu.earphone`）的 LSPosed 模块。
-首个支持型号：**OPPO Enco X2**（魅族 21 Pro / Flyme 12.6 / Android 16）。
+首个支持型号：**OPPO Enco X2**（已实机验证：魅族 21 Pro / Flyme 12.6 / Android 16）。
 
-## 功能
-
-- 连接耳机时拉起 Flyme **原生连接弹窗**（名称 / 配图 / 左右耳与充电盒电量）
-- 第三方耳机出现在魅族耳机 App 的**设备列表**中，可进入原生设备详情页
-- 详情页显示**电量与当前降噪模式**，可切换 关闭 / 降噪 / 通透
-- 控制中心「降噪」磁贴，标签带电量
-- 直接走 OPPO 私有 RFCOMM 协议，**无需「欢律」App**
+模块只做底层设备伪装，不重绘任何界面：弹窗、列表、详情页、设备中心卡片全部是魅族原生实现，
+状态回传走魅族 SDK 自己的回调链。
 
 ## 使用条件
 
 - 魅族手机 + Flyme（当前验证：魅族 21 Pro / Flyme 12.6 / Android 16）
-- 已安装 LSPosed，作用域勾选：`com.android.systemui`、`com.meizu.earphone`、`com.meizu.connectivitysettings`
-- 首次使用需重启手机
+- 已安装 LSPosed
+- 作用域勾选：`com.android.systemui`、`com.meizu.earphone`（可加 `com.meizu.connectivitysettings`）
 
-## 源码与问题反馈
+## OPPO Enco X2 已适配能力
 
-- 源码：<https://github.com/cnnceart/FlymeEars>
-- 问题反馈：<https://github.com/cnnceart/FlymeEars/issues>
+| 能力 | 原生入口 | 协议 |
+|---|---|---|
+| 连接弹窗（名称 / 配图 / 电量） | 连接耳机时自动弹出 | 私有握手 + 0x0106 |
+| 设备列表 + 行内电量 / 降噪 | 耳机 App → 我的设备 | 状态广播 |
+| 详情页电量（左 / 右 / 盒 + 充电） | 设备详情 → 电量卡片 | 0x8106 |
+| 降噪三态（关闭 / 降噪 / 通透） | 详情页 → 噪声控制 | 0x0404 / 0x810C |
+| 降噪四档（智能 / 深度 / 均衡 / 轻度） | 详情页 → 降噪方式 | 0x0404 档位值 |
+| 音效预设 EQ | 详情页 → 声效调节 | 0x0406 / 0x010F |
+| 自定义 EQ（10 段曲线） | 声效调节 → 自定义 | 0x0411 + 0x040E + 0x0116/0x0415 + 0x0403 0B |
+| 高品质音频 AAC / LHDC / LDAC | 详情页 → 高品质音频 | 0x041A / 0x0114 |
+| Hi-Res（LHDC 5.0 开关） | 高品质音频 → LHDC 行 | setLhdcAudioMode 17/18 |
+| 低延迟（游戏模式） | 详情页 → 低延迟模式 | 0x0403 06 |
+| 设备双连（含设备表） | 详情页 → 设备双连 | 0x0403 11 + 0x0112 |
+| 佩戴 / 在盒检测 | 状态驱动 | 0x0109 / 0x0204 |
+| 重命名 | 详情页 → 重命名 | App 侧持久化 |
+| 设备中心耳机卡片 | 控制中心 | Binder 回调 + 状态模型 |
 
-## 许可
+## 说明
 
-GPL-3.0。协议实现与耳机渲染素材来自 [HyperEars](https://github.com/silverpoetry/HyperEars)（GPL-3.0），
-更多出处见源码仓库的 `THIRD_PARTY_NOTICES.md`。
+- 直接走 OPPO 私有 RFCOMM 协议，**不需要「欢律」App**。
+- 自定义 EQ 走耳机 6 段听力补偿曲线，10 段滑杆按频段折叠，属近似映射，听感建议自测。
+- 充电状态在盒内不置 bit7，模块按「在盒=充电」推断；进盒瞬间因 RFCOMM 重连可能有 2–3 秒延迟。
+- 降噪切换需佩戴耳机，未佩戴时原生页面会提示并回滚。
+- 目前只验证了 OPPO Enco X2，其他 Enco 型号按型号映射处理，尚未逐一验证。
 
-Meizu、Flyme、OPPO、Enco 等商标仅用于兼容性描述，归各自权利人所有。
+## 安装
+
+1. 安装 APK
+2. LSPosed 中启用 FlymeEars，勾选上面的作用域
+3. 重启手机
+
+## 链接
+
+- 源码与问题反馈：https://github.com/cnnceart/FlymeEars
